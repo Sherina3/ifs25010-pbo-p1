@@ -20,31 +20,58 @@ public class App {
 
     public static void main(String[] args) {
         Scanner sc = new Scanner(System.in);
-        String nim = sc.hasNextLine() ? sc.nextLine() : "";
+        String nim = bacaNim(sc);
 
-        if (nim.length() != 8) {
+        if (!validasiPanjangNim(nim)) {
             System.out.println("NIM harus 8 karakter");
             return;
         }
 
-        String prefix = nim.substring(0, 3);
-        String namaProdi = null;
-        for (int i = 0; i < prefixKode.length; i++) {
-            if (prefixKode[i].equals(prefix)) {
-                namaProdi = prefixNama[i];
-                break;
-            }
-        }
-
+        String namaProdi = cariNamaProdi(nim);
         if (namaProdi == null) {
             System.out.println("Kode tidak tersedia");
             return;
         }
 
-        String kodeAngkatan = nim.substring(3, 5);
-        int angkatan = Integer.parseInt("20" + kodeAngkatan);
-        int urutan = Integer.parseInt(nim.substring(5, 8));
+        int angkatan = parseAngkatan(nim);
+        int urutan = parseUrutan(nim);
 
+        cetakInformasiNim(nim, namaProdi, angkatan, urutan);
+    }
+
+    // Membaca satu baris input NIM dari Scanner.
+    private static String bacaNim(Scanner sc) {
+        return sc.hasNextLine() ? sc.nextLine() : "";
+    }
+
+    // NIM valid hanya jika panjangnya tepat 8 karakter.
+    private static boolean validasiPanjangNim(String nim) {
+        return nim.length() == 8;
+    }
+
+    // Mencocokkan 3 karakter pertama NIM dengan daftar kode prodi.
+    private static String cariNamaProdi(String nim) {
+        String prefix = nim.substring(0, 3);
+        for (int i = 0; i < prefixKode.length; i++) {
+            if (prefixKode[i].equals(prefix)) {
+                return prefixNama[i];
+            }
+        }
+        return null;
+    }
+
+    // Karakter ke-4 dan ke-5 adalah 2 digit terakhir tahun angkatan (diasumsikan 20xx).
+    private static int parseAngkatan(String nim) {
+        String kodeAngkatan = nim.substring(3, 5);
+        return Integer.parseInt("20" + kodeAngkatan);
+    }
+
+    // Karakter ke-6 sampai ke-8 adalah nomor urut mahasiswa.
+    private static int parseUrutan(String nim) {
+        return Integer.parseInt(nim.substring(5, 8));
+    }
+
+    private static void cetakInformasiNim(String nim, String namaProdi, int angkatan, int urutan) {
         System.out.println("Informasi NIM " + nim + ": ");
         System.out.println(">> Program Studi: " + namaProdi);
         System.out.println(">> Angkatan: " + angkatan);

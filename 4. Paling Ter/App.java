@@ -7,8 +7,19 @@ public class App {
     public static void main(String[] args) {
         Scanner sc = new Scanner(System.in);
 
+        Map<Integer, Integer> frekuensi = bacaFrekuensi(sc);
+        if (frekuensi.isEmpty()) {
+            return;
+        }
+
+        HasilAnalisis hasil = analisisFrekuensi(frekuensi);
+        cetakHasil(hasil, frekuensi);
+    }
+
+    // Membaca setiap baris angka sampai "---", lalu menghitung berapa kali tiap angka muncul.
+    // Baris kosong diabaikan.
+    private static Map<Integer, Integer> bacaFrekuensi(Scanner sc) {
         Map<Integer, Integer> frekuensi = new HashMap<>();
-        boolean adaData = false;
 
         while (sc.hasNextLine()) {
             String baris = sc.nextLine().trim();
@@ -20,69 +31,99 @@ public class App {
             }
             int nilai = Integer.parseInt(baris);
             frekuensi.merge(nilai, 1, Integer::sum);
-            adaData = true;
         }
 
-        if (!adaData) {
-            return;
-        }
+        return frekuensi;
+    }
 
-        int tertinggi = Integer.MIN_VALUE;
-        int terendah = Integer.MAX_VALUE;
+    // Wadah sederhana untuk seluruh hasil analisis, supaya bisa dikembalikan sebagai satu objek.
+    private static class HasilAnalisis {
+        int tertinggi;
+        int terendah;
+        int terbanyakNilai;
+        int tersedikitNilai;
+        long jumlahTertinggiNilai;
+        long jumlahTertinggiHasil;
+        long jumlahTerendahNilai;
+        long jumlahTerendahHasil;
+    }
 
-        int terbanyakNilai = 0, terbanyakFrek = -1;
-        int tersedikitNilai = 0, tersedikitFrek = Integer.MAX_VALUE;
-        long jumlahTertinggiNilai = 0, jumlahTertinggiHasil = Long.MIN_VALUE;
+    private static HasilAnalisis analisisFrekuensi(Map<Integer, Integer> frekuensi) {
+        HasilAnalisis hasil = new HasilAnalisis();
+
+        hasil.tertinggi = Integer.MIN_VALUE;
+        hasil.terendah = Integer.MAX_VALUE;
+
+        int terbanyakFrek = -1;
+        int tersedikitFrek = Integer.MAX_VALUE;
+        long jumlahTertinggiHasil = Long.MIN_VALUE;
         boolean jumlahTertinggiSet = false;
-        long jumlahTerendahNilai = 0, jumlahTerendahHasil = Long.MAX_VALUE;
+        long jumlahTerendahHasil = Long.MAX_VALUE;
         boolean jumlahTerendahSet = false;
 
         for (Map.Entry<Integer, Integer> entry : frekuensi.entrySet()) {
             int nilai = entry.getKey();
             int frek = entry.getValue();
 
-            if (nilai > tertinggi) tertinggi = nilai;
-            if (nilai < terendah) terendah = nilai;
+            if (nilai > hasil.tertinggi) hasil.tertinggi = nilai;
+            if (nilai < hasil.terendah) hasil.terendah = nilai;
 
-            // Terbanyak: frekuensi tertinggi, seri -> nilai lebih besar
-            if (frek > terbanyakFrek || (frek == terbanyakFrek && nilai > terbanyakNilai)) {
+            // Aturan tie-breaking "Terbanyak": pemenang adalah frekuensi tertinggi.
+            // Jika ada 2 angka atau lebih dengan frekuensi yang sama tingginya,
+            // yang dipilih adalah angka (nilai) yang LEBIH BESAR.
+            if (frek > terbanyakFrek || (frek == terbanyakFrek && nilai > hasil.terbanyakNilai)) {
                 terbanyakFrek = frek;
-                terbanyakNilai = nilai;
+                hasil.terbanyakNilai = nilai;
             }
 
-            // Tersedikit: frekuensi terendah, seri -> nilai lebih kecil
-            if (frek < tersedikitFrek || (frek == tersedikitFrek && nilai < tersedikitNilai)) {
+            // Aturan tie-breaking "Tersedikit": pemenang adalah frekuensi terendah.
+            // Jika seri, yang dipilih adalah angka (nilai) yang LEBIH KECIL
+            // (kebalikan dari aturan "Terbanyak" di atas).
+            if (frek < tersedikitFrek || (frek == tersedikitFrek && nilai < hasil.tersedikitNilai)) {
                 tersedikitFrek = frek;
-                tersedikitNilai = nilai;
+                hasil.tersedikitNilai = nilai;
             }
 
-            long hasil = (long) nilai * frek;
+            long hasilKali = (long) nilai * frek;
 
-            // Jumlah Tertinggi: hasil terbesar, seri -> nilai lebih besar
-            if (!jumlahTertinggiSet || hasil > jumlahTertinggiHasil
-                    || (hasil == jumlahTertinggiHasil && nilai > jumlahTertinggiNilai)) {
-                jumlahTertinggiHasil = hasil;
-                jumlahTertinggiNilai = nilai;
+            // Aturan tie-breaking "Jumlah Tertinggi": pemenang adalah hasil (nilai x frekuensi) terbesar.
+            // Jika seri, yang dipilih adalah angka (nilai) yang LEBIH BESAR.
+            if (!jumlahTertinggiSet || hasilKali > jumlahTertinggiHasil
+                    || (hasilKali == jumlahTertinggiHasil && nilai > hasil.jumlahTertinggiNilai)) {
+                jumlahTertinggiHasil = hasilKali;
+                hasil.jumlahTertinggiNilai = nilai;
                 jumlahTertinggiSet = true;
             }
 
-            // Jumlah Terendah: hasil terkecil, seri -> nilai lebih kecil
-            if (!jumlahTerendahSet || hasil < jumlahTerendahHasil
-                    || (hasil == jumlahTerendahHasil && nilai < jumlahTerendahNilai)) {
-                jumlahTerendahHasil = hasil;
-                jumlahTerendahNilai = nilai;
+            // Aturan tie-breaking "Jumlah Terendah": pemenang adalah hasil (nilai x frekuensi) terkecil.
+            // Jika seri, yang dipilih adalah angka (nilai) yang LEBIH KECIL.
+            if (!jumlahTerendahSet || hasilKali < jumlahTerendahHasil
+                    || (hasilKali == jumlahTerendahHasil && nilai < hasil.jumlahTerendahNilai)) {
+                jumlahTerendahHasil = hasilKali;
+                hasil.jumlahTerendahNilai = nilai;
                 jumlahTerendahSet = true;
             }
         }
 
-        int terbanyakFrekAkhir = frekuensi.get(terbanyakNilai);
-        int tersedikitFrekAkhir = frekuensi.get(tersedikitNilai);
+        hasil.jumlahTertinggiHasil = jumlahTertinggiHasil;
+        hasil.jumlahTerendahHasil = jumlahTerendahHasil;
 
-        System.out.println("Tertinggi: " + tertinggi);
-        System.out.println("Terendah: " + terendah);
-        System.out.println("Terbanyak: " + terbanyakNilai + " (" + terbanyakFrekAkhir + "x)");
-        System.out.println("Tersedikit: " + tersedikitNilai + " (" + tersedikitFrekAkhir + "x)");
-        System.out.println("Jumlah Tertinggi: " + jumlahTertinggiNilai + " * " + frekuensi.get((int) jumlahTertinggiNilai) + " = " + jumlahTertinggiHasil);
-        System.out.println("Jumlah Terendah: " + jumlahTerendahNilai + " * " + frekuensi.get((int) jumlahTerendahNilai) + " = " + jumlahTerendahHasil);
+        return hasil;
+    }
+
+    private static void cetakHasil(HasilAnalisis hasil, Map<Integer, Integer> frekuensi) {
+        int terbanyakFrekAkhir = frekuensi.get(hasil.terbanyakNilai);
+        int tersedikitFrekAkhir = frekuensi.get(hasil.tersedikitNilai);
+        int frekJumlahTertinggi = frekuensi.get((int) hasil.jumlahTertinggiNilai);
+        int frekJumlahTerendah = frekuensi.get((int) hasil.jumlahTerendahNilai);
+
+        System.out.println("Tertinggi: " + hasil.tertinggi);
+        System.out.println("Terendah: " + hasil.terendah);
+        System.out.println("Terbanyak: " + hasil.terbanyakNilai + " (" + terbanyakFrekAkhir + "x)");
+        System.out.println("Tersedikit: " + hasil.tersedikitNilai + " (" + tersedikitFrekAkhir + "x)");
+        System.out.println("Jumlah Tertinggi: " + hasil.jumlahTertinggiNilai + " * " + frekJumlahTertinggi
+                + " = " + hasil.jumlahTertinggiHasil);
+        System.out.println("Jumlah Terendah: " + hasil.jumlahTerendahNilai + " * " + frekJumlahTerendah
+                + " = " + hasil.jumlahTerendahHasil);
     }
 }

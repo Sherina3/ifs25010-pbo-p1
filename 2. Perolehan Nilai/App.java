@@ -8,42 +8,43 @@ public class App {
     private static final String PESAN_FORMAT =
             "Data tidak valid. Silahkan menggunakan format: Simbol|Bobot|Perolehan-Nilai";
 
-    private static int cariIndeks(String simbol) {
-        for (int i = 0; i < SIMBOL.length; i++) {
-            if (SIMBOL[i].equals(simbol)) {
-                return i;
-            }
-        }
-        return -1;
-    }
-
-    private static String tentukanGrade(double nilai) {
-        double[] batas = {79.5, 72, 64.5, 57, 49.5, 34};
-        String[] huruf = {"A", "AB", "B", "BC", "C", "D"};
-        for (int i = 0; i < batas.length; i++) {
-            if (nilai >= batas[i]) {
-                return huruf[i];
-            }
-        }
-        return "E";
-    }
-
     public static void main(String[] args) {
         Scanner input = new Scanner(System.in);
 
-        int[] bobotAwal = new int[NAMA.length];
-        int jumlahBobot = 0;
-        for (int i = 0; i < bobotAwal.length; i++) {
-            bobotAwal[i] = Integer.parseInt(input.nextLine().trim());
-            jumlahBobot += bobotAwal[i];
-        }
+        int[] bobotAwal = bacaBobotAwal(input);
+        int jumlahBobot = jumlahkan(bobotAwal);
 
         if (jumlahBobot != 100) {
             System.out.println("Total bobot harus 100");
             return;
         }
 
-        // akumulasi[0][i] = total bobot, akumulasi[1][i] = total perolehan
+        // akumulasi[0][i] = total bobot yang sudah masuk, akumulasi[1][i] = total perolehan
+        int[][] akumulasi = prosesBarisPenilaian(input);
+
+        cetakPerolehanNilai(bobotAwal, akumulasi);
+    }
+
+    // Membaca 6 baris pertama sebagai bobot awal tiap komponen penilaian.
+    private static int[] bacaBobotAwal(Scanner input) {
+        int[] bobotAwal = new int[NAMA.length];
+        for (int i = 0; i < bobotAwal.length; i++) {
+            bobotAwal[i] = Integer.parseInt(input.nextLine().trim());
+        }
+        return bobotAwal;
+    }
+
+    private static int jumlahkan(int[] bobot) {
+        int total = 0;
+        for (int nilai : bobot) {
+            total += nilai;
+        }
+        return total;
+    }
+
+    // Membaca baris "Simbol|Bobot|Perolehan" sampai menemukan "---",
+    // sambil memvalidasi format, simbol, dan mengakumulasi bobot/perolehan per komponen.
+    private static int[][] prosesBarisPenilaian(Scanner input) {
         int[][] akumulasi = new int[2][NAMA.length];
 
         while (input.hasNextLine()) {
@@ -74,12 +75,38 @@ public class App {
                 continue;
             }
 
+            // Perolehan tidak boleh melebihi bobot ataupun bernilai negatif.
             perolehan = Math.max(0, Math.min(perolehan, bobot));
 
             akumulasi[0][indeks] += bobot;
             akumulasi[1][indeks] += perolehan;
         }
 
+        return akumulasi;
+    }
+
+    private static int cariIndeks(String simbol) {
+        for (int i = 0; i < SIMBOL.length; i++) {
+            if (SIMBOL[i].equals(simbol)) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    private static String tentukanGrade(double nilai) {
+        double[] batas = {79.5, 72, 64.5, 57, 49.5, 34};
+        String[] huruf = {"A", "AB", "B", "BC", "C", "D"};
+        for (int i = 0; i < batas.length; i++) {
+            if (nilai >= batas[i]) {
+                return huruf[i];
+            }
+        }
+        return "E";
+    }
+
+    // Menghitung persentase & kontribusi tiap komponen, nilai akhir, lalu mencetak semuanya beserta grade.
+    private static void cetakPerolehanNilai(int[] bobotAwal, int[][] akumulasi) {
         System.out.println("Perolehan Nilai:");
         double nilaiAkhir = 0;
         for (int i = 0; i < NAMA.length; i++) {

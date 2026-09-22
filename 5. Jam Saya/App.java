@@ -6,10 +6,25 @@ public class App {
         Scanner sc = new Scanner(System.in);
         String jamAwalStr = sc.hasNextLine() ? sc.nextLine().trim() : "";
 
-        String[] bagian = jamAwalStr.split(":");
-        if (bagian.length != 2) {
+        int[] jamMenitAwal = parseJamAwal(jamAwalStr);
+        if (jamMenitAwal == null) {
             System.out.println("Jam tidak valid");
             return;
+        }
+        int jam = jamMenitAwal[0];
+        int menit = jamMenitAwal[1];
+
+        HasilPergeseran hasil = prosesPerintahPergeseran(sc, jam, menit);
+
+        cetakHasil(jam, menit, hasil);
+    }
+
+    // Mem-parsing string "JJ:MM" menjadi {jam, menit}, atau null jika formatnya tidak valid
+    // (bukan 2 bagian, bukan angka, atau di luar rentang 00:00-23:59).
+    private static int[] parseJamAwal(String jamAwalStr) {
+        String[] bagian = jamAwalStr.split(":");
+        if (bagian.length != 2) {
+            return null;
         }
 
         int jam, menit;
@@ -17,19 +32,28 @@ public class App {
             jam = Integer.parseInt(bagian[0].trim());
             menit = Integer.parseInt(bagian[1].trim());
         } catch (NumberFormatException e) {
-            System.out.println("Jam tidak valid");
-            return;
+            return null;
         }
 
         if (jam < 0 || jam > 23 || menit < 0 || menit > 59) {
-            System.out.println("Jam tidak valid");
-            return;
+            return null;
         }
 
-        int totalMenitAwal = jam * 60 + menit;
-        int totalMenitSekarang = totalMenitAwal;
-        int totalGeser = 0;
-        int pergantianHari = 0;
+        return new int[]{jam, menit};
+    }
+
+    // Wadah hasil akhir setelah seluruh perintah pergeseran diproses.
+    private static class HasilPergeseran {
+        int totalMenitSekarang;
+        int totalGeser;
+        int pergantianHari;
+    }
+
+    // Membaca perintah pergeseran ("+N" / "-N") satu per satu sampai "---",
+    // lalu mengakumulasi pergeserannya ke waktu berjalan.
+    private static HasilPergeseran prosesPerintahPergeseran(Scanner sc, int jam, int menit) {
+        HasilPergeseran hasil = new HasilPergeseran();
+        hasil.totalMenitSekarang = jam * 60 + menit;
 
         while (sc.hasNextLine()) {
             String baris = sc.nextLine().trim();
@@ -55,34 +79,48 @@ public class App {
             }
 
             int geser = (baris.charAt(0) == '+') ? n : -n;
-            totalMenitSekarang += geser;
-            totalGeser += geser;
+            hasil.totalMenitSekarang += geser;
+            hasil.totalGeser += geser;
 
-            while (totalMenitSekarang >= 1440) {
-                totalMenitSekarang -= 1440;
-                pergantianHari++;
-            }
-            while (totalMenitSekarang < 0) {
-                totalMenitSekarang += 1440;
-                pergantianHari++;
-            }
+            terapkanPergantianHari(hasil);
         }
 
-        int jamAkhir = totalMenitSekarang / 60;
-        int menitAkhir = totalMenitSekarang % 60;
+        return hasil;
+    }
 
-        String totalMenitStr;
+    // Waktu berjalan disimpan dalam total menit sejak 00:00 dan bisa melewati batas
+    // 1 hari (1440 menit) ke arah manapun. Method ini "membungkus" (wrap-around) nilai
+    // tersebut kembali ke rentang 0-1439, sambil menghitung berapa kali terjadi
+    // pergantian hari (maju bila totalnya >= 1440, mundur bila totalnya < 0).
+    private static void terapkanPergantianHari(HasilPergeseran hasil) {
+        while (hasil.totalMenitSekarang >= 1440) {
+            hasil.totalMenitSekarang -= 1440;
+            hasil.pergantianHari++;
+        }
+        while (hasil.totalMenitSekarang < 0) {
+            hasil.totalMenitSekarang += 1440;
+            hasil.pergantianHari++;
+        }
+    }
+
+    // Format total pergeseran menit dengan tanda eksplisit: "+N" jika maju, "-N" jika mundur, "0" jika tidak berubah.
+    private static String formatTotalMenit(int totalGeser) {
         if (totalGeser > 0) {
-            totalMenitStr = "+" + totalGeser;
+            return "+" + totalGeser;
         } else if (totalGeser == 0) {
-            totalMenitStr = "0";
+            return "0";
         } else {
-            totalMenitStr = String.valueOf(totalGeser);
+            return String.valueOf(totalGeser);
         }
+    }
+
+    private static void cetakHasil(int jam, int menit, HasilPergeseran hasil) {
+        int jamAkhir = hasil.totalMenitSekarang / 60;
+        int menitAkhir = hasil.totalMenitSekarang % 60;
 
         System.out.printf("Jam Awal: %02d:%02d%n", jam, menit);
         System.out.printf("Jam Akhir: %02d:%02d%n", jamAkhir, menitAkhir);
-        System.out.println("Total Menit: " + totalMenitStr);
-        System.out.println("Pergantian Hari: " + pergantianHari);
+        System.out.println("Total Menit: " + formatTotalMenit(hasil.totalGeser));
+        System.out.println("Pergantian Hari: " + hasil.pergantianHari);
     }
 }
