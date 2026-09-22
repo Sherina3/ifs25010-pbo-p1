@@ -105,16 +105,28 @@ public class App {
         return "E";
     }
 
+    // Menghitung persentase perolehan sebuah komponen sebagai double (bukan pembagian integer),
+    // supaya bagian desimalnya tidak hilang sebelum dipakai menghitung kontribusi ke nilai akhir.
+    // Contoh: perolehan 2 dari bobot 3 = 66.67%, bukan dibulatkan-turun menjadi 66% terlebih dahulu.
+    private static double hitungPersentase(int totalPerolehan, int totalBobot) {
+        if (totalBobot == 0) {
+            return 0.0;
+        }
+        return totalPerolehan * 100.0 / totalBobot;
+    }
+
     // Menghitung persentase & kontribusi tiap komponen, nilai akhir, lalu mencetak semuanya beserta grade.
     private static void cetakPerolehanNilai(int[] bobotAwal, int[][] akumulasi) {
         System.out.println("Perolehan Nilai:");
         double nilaiAkhir = 0;
         for (int i = 0; i < NAMA.length; i++) {
-            int persen = (akumulasi[0][i] == 0) ? 0 : (akumulasi[1][i] * 100) / akumulasi[0][i];
+            double persen = hitungPersentase(akumulasi[1][i], akumulasi[0][i]);
             double kontribusi = persen / 100.0 * bobotAwal[i];
             nilaiAkhir += kontribusi;
+            // Persentase ditampilkan sebagai bilangan bulat (dibulatkan ke bawah),
+            // tetapi nilai desimalnya tetap dipakai utuh untuk perhitungan kontribusi di atas.
             System.out.println(String.format(Locale.US, ">> %s: %d/100 (%.2f/%d)",
-                    NAMA[i], persen, kontribusi, bobotAwal[i]));
+                    NAMA[i], (int) persen, kontribusi, bobotAwal[i]));
         }
 
         System.out.println();

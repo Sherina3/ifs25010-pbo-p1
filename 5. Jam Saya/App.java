@@ -14,7 +14,8 @@ public class App {
         int jam = jamMenitAwal[0];
         int menit = jamMenitAwal[1];
 
-        HasilPergeseran hasil = prosesPerintahPergeseran(sc, jam, menit);
+        // index 0 = totalMenitSekarang, index 1 = totalGeser, index 2 = pergantianHari
+        int[] hasil = prosesPerintahPergeseran(sc, jam, menit);
 
         cetakHasil(jam, menit, hasil);
     }
@@ -42,18 +43,13 @@ public class App {
         return new int[]{jam, menit};
     }
 
-    // Wadah hasil akhir setelah seluruh perintah pergeseran diproses.
-    private static class HasilPergeseran {
-        int totalMenitSekarang;
-        int totalGeser;
-        int pergantianHari;
-    }
-
     // Membaca perintah pergeseran ("+N" / "-N") satu per satu sampai "---",
     // lalu mengakumulasi pergeserannya ke waktu berjalan.
-    private static HasilPergeseran prosesPerintahPergeseran(Scanner sc, int jam, int menit) {
-        HasilPergeseran hasil = new HasilPergeseran();
-        hasil.totalMenitSekarang = jam * 60 + menit;
+    // Mengembalikan array {totalMenitSekarang, totalGeser, pergantianHari}.
+    private static int[] prosesPerintahPergeseran(Scanner sc, int jam, int menit) {
+        int totalMenitSekarang = jam * 60 + menit;
+        int totalGeser = 0;
+        int pergantianHari = 0;
 
         while (sc.hasNextLine()) {
             String baris = sc.nextLine().trim();
@@ -79,28 +75,33 @@ public class App {
             }
 
             int geser = (baris.charAt(0) == '+') ? n : -n;
-            hasil.totalMenitSekarang += geser;
-            hasil.totalGeser += geser;
+            totalMenitSekarang += geser;
+            totalGeser += geser;
 
-            terapkanPergantianHari(hasil);
+            // Waktu berjalan disimpan dalam total menit sejak 00:00 dan bisa melewati batas
+            // 1 hari (1440 menit) ke arah manapun. normalisasiWaktu "membungkus" (wrap-around)
+            // nilai tersebut kembali ke rentang 0-1439, sambil mengembalikan berapa kali
+            // pergantian hari terjadi (maju bila total >= 1440, mundur bila total < 0).
+            int[] hasilNormalisasi = normalisasiWaktu(totalMenitSekarang);
+            totalMenitSekarang = hasilNormalisasi[0];
+            pergantianHari += hasilNormalisasi[1];
         }
 
-        return hasil;
+        return new int[]{totalMenitSekarang, totalGeser, pergantianHari};
     }
 
-    // Waktu berjalan disimpan dalam total menit sejak 00:00 dan bisa melewati batas
-    // 1 hari (1440 menit) ke arah manapun. Method ini "membungkus" (wrap-around) nilai
-    // tersebut kembali ke rentang 0-1439, sambil menghitung berapa kali terjadi
-    // pergantian hari (maju bila totalnya >= 1440, mundur bila totalnya < 0).
-    private static void terapkanPergantianHari(HasilPergeseran hasil) {
-        while (hasil.totalMenitSekarang >= 1440) {
-            hasil.totalMenitSekarang -= 1440;
-            hasil.pergantianHari++;
+    // Mengembalikan array {totalMenitTernormalisasi, jumlahPergantianHari} untuk satu nilai total menit.
+    private static int[] normalisasiWaktu(int totalMenit) {
+        int pergantianHari = 0;
+        while (totalMenit >= 1440) {
+            totalMenit -= 1440;
+            pergantianHari++;
         }
-        while (hasil.totalMenitSekarang < 0) {
-            hasil.totalMenitSekarang += 1440;
-            hasil.pergantianHari++;
+        while (totalMenit < 0) {
+            totalMenit += 1440;
+            pergantianHari++;
         }
+        return new int[]{totalMenit, pergantianHari};
     }
 
     // Format total pergeseran menit dengan tanda eksplisit: "+N" jika maju, "-N" jika mundur, "0" jika tidak berubah.
@@ -114,13 +115,17 @@ public class App {
         }
     }
 
-    private static void cetakHasil(int jam, int menit, HasilPergeseran hasil) {
-        int jamAkhir = hasil.totalMenitSekarang / 60;
-        int menitAkhir = hasil.totalMenitSekarang % 60;
+    private static void cetakHasil(int jam, int menit, int[] hasil) {
+        int totalMenitSekarang = hasil[0];
+        int totalGeser = hasil[1];
+        int pergantianHari = hasil[2];
+
+        int jamAkhir = totalMenitSekarang / 60;
+        int menitAkhir = totalMenitSekarang % 60;
 
         System.out.printf("Jam Awal: %02d:%02d%n", jam, menit);
         System.out.printf("Jam Akhir: %02d:%02d%n", jamAkhir, menitAkhir);
-        System.out.println("Total Menit: " + formatTotalMenit(hasil.totalGeser));
-        System.out.println("Pergantian Hari: " + hasil.pergantianHari);
+        System.out.println("Total Menit: " + formatTotalMenit(totalGeser));
+        System.out.println("Pergantian Hari: " + pergantianHari);
     }
 }

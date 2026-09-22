@@ -33,6 +33,13 @@ public class App {
             return;
         }
 
+        // Karakter ke-4 s.d. ke-8 (kode angkatan + nomor urut) wajib berupa digit,
+        // supaya tidak terjadi crash saat di-parse menjadi angka.
+        if (!validasiDigitAngkatanDanUrutan(nim)) {
+            System.out.println("Kode angkatan dan urutan pada NIM harus berupa angka");
+            return;
+        }
+
         int angkatan = parseAngkatan(nim);
         int urutan = parseUrutan(nim);
 
@@ -58,6 +65,16 @@ public class App {
             }
         }
         return null;
+    }
+
+    // Mengecek apakah 5 karakter terakhir NIM (indeks 3-7) semuanya digit 0-9.
+    private static boolean validasiDigitAngkatanDanUrutan(String nim) {
+        for (int i = 3; i < nim.length(); i++) {
+            if (!Character.isDigit(nim.charAt(i))) {
+                return false;
+            }
+        }
+        return true;
     }
 
     // Karakter ke-4 dan ke-5 adalah 2 digit terakhir tahun angkatan (diasumsikan 20xx).
